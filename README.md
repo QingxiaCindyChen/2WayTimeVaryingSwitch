@@ -1,0 +1,1 @@
+This is the repository for paper: Chen, Q., Zhang, F., Chen, M.H. and Cong, X.J., 2020. Estimation of treatment effects and model diagnostics with two-way time-varying treatment switching: an application to a head and neck study. Lifetime data analysis, 26(4), pp.685-707.
