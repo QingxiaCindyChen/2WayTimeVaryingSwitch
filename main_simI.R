@@ -4,24 +4,10 @@
 
 rm(list = ls())
 library(survival)
-# library(rms)
-# library(Hmisc)
 library(Matrix)
 
-# dir <- '/home/chenq3/Dropbox/Papers/UConn_Julie/Program/TD_model/'
-# source(paste(dir, 'June2015/CountDat.R', sep=''))
-# source(paste(dir, 'EM3.R', sep=''))
-# source(paste(dir, 'June2015/TM.fun.WCoxph.R', sep=''))
-# source(paste(dir, 'June2015/resid.WCoxph.R', sep=''))
-# source(paste(dir, 'June2015/Predict.Fast.Nosd.Rev.R', sep=''))
-# source(paste(dir, 'June2015/Covest.R', sep=''))
-# # source(paste(dir, 'Simulation/TrueSurv.R', sep=''))
-# source(paste(dir, 'Simulation/TrueSurv4.R', sep=''))
-# source(paste(dir, 'Simulation/shaocox3.r', sep=''))
-# source(paste(dir, 'Simulation/LuoJBS.R', sep=''))
-
-dir <- '~/Dropbox/Papers/UConn_Julie/Program/TD_model/'
-# dir <- 'C:/Users/chenq3/Dropbox/Papers/UConn_Julie/Program/TD_model/'
+# setup your own working directory
+# dir <- '~/Dropbox/Papers/UConn_Julie/Program/TD_model/'
 
 source(paste(dir, 'CountDat.R', sep=''))
 source(paste(dir, 'EM3.R', sep=''))
@@ -56,14 +42,11 @@ gam1vec <- c(-0.16, 0.75, 0.2)
 tau <- 3
 pred.t <- seq(0.01,tau,0.01)
 TS<- TrueSurv(pred.t, n=100000, beta0vec, beta0Tvec=c(0,0), beta1vec, beta2vec, beta2Tvec=c(0,0), alpvec, gam1vec)
-#save(TS, file="TS_typeI.Rdata")
-#load("/home/chenq3/Zeng_SemicompetingRisk/TransitionModel/TS_typeI.Rdata")
 
 testpt0 <- pred.t
 testpt1 <- pred.t
 testpt2 <- pred.t
 truecoeff <- c(beta0vec, beta0Tvec, testpt0/2, beta1vec, testpt1, beta2vec, beta2Tvec, testpt2/2, alpvec, TS[[1]], TS[[2]])
-
 # truecoeff <- c(beta0vec, beta0Tvec, testpt0, beta1vec, exp(testpt1)-1, beta2vec, beta2Tvec, testpt2/2, alpvec, TS[[1]], TS[[2]])
 
 # start simulations
@@ -160,25 +143,27 @@ for (m in 1:nsim) {
    g1e <- Predict.Fast.Nosd(pred.t=pred.t, status=1, para=par, A0=dat0$R, Group=dat0$Group, X=X, Xd=Xd, Xe=Xe, 
                            Xg=Xg, Xbaseline=Xbaseline)$surv.pred 
 
-# for (b in 1:B) {
-#   cat("m=", m, "b=", b)
-#   print(Sys.time())
-#   sap <- sample(1:n, n, replace=T)
-#   Sdat <- dat0[sap,]
-#   Sdat$PTID <- 1:n # pseudo unique id
-#   SdatCount <- with(Sdat, CountDat(Y, DeltaY, W, DeltaE, as.matrix(Sdat), Vtime, epsilon))
-#   SdatCount$RVt <- with(SdatCount, R*Vt)
-#   retB <- TM.fun.WCoxph(SdatCount=SdatCount, Sdat=Sdat, Umod, TDmod, TUmod, TGmod, sd=FALSE, ID='PTID')
-#   g0[b,] <- Predict.Fast.Nosd(pred.t=pred.t, status=0, para=retB$newpara, A0=Sdat$R, Group=Sdat$Group, X=X[sap,], Xd=Xd[sap,], Xe=Xe[sap,],
-#                               Xg=Xg[sap,], Xbaseline=Xbaseline[sap,], z=Sdat$z1)$surv.pred
-#   g1[b,] <- Predict.Fast.Nosd(pred.t=pred.t, status=1, para=retB$newpara, A0=Sdat$R, Group=Sdat$Group, X=X[sap,], Xd=Xd[sap,], Xe=Xe[sap,],
-#                               Xg=Xg[sap,], Xbaseline=Xbaseline[sap,], z=Sdat$z1)$surv.pred
-# }
-# g0sd <- apply(g0,2,sd)
-# g1sd <- apply(g1,2,sd)
-
+### start of bootstrap sampling to estimate standard deviation.      
+ for (b in 1:B) {
+   cat("m=", m, "b=", b)
+   print(Sys.time())
+   sap <- sample(1:n, n, replace=T)
+   Sdat <- dat0[sap,]
+   Sdat$PTID <- 1:n # pseudo unique id
+   SdatCount <- with(Sdat, CountDat(Y, DeltaY, W, DeltaE, as.matrix(Sdat), Vtime, epsilon))
+   SdatCount$RVt <- with(SdatCount, R*Vt)
+   retB <- TM.fun.WCoxph(SdatCount=SdatCount, Sdat=Sdat, Umod, TDmod, TUmod, TGmod, sd=FALSE, ID='PTID')
+   g0[b,] <- Predict.Fast.Nosd(pred.t=pred.t, status=0, para=retB$newpara, A0=Sdat$R, Group=Sdat$Group, X=X[sap,], Xd=Xd[sap,], Xe=Xe[sap,],
+                               Xg=Xg[sap,], Xbaseline=Xbaseline[sap,], z=Sdat$z1)$surv.pred
+   g1[b,] <- Predict.Fast.Nosd(pred.t=pred.t, status=1, para=retB$newpara, A0=Sdat$R, Group=Sdat$Group, X=X[sap,], Xd=Xd[sap,], Xe=Xe[sap,],
+                               Xg=Xg[sap,], Xbaseline=Xbaseline[sap,], z=Sdat$z1)$surv.pred
+ }
+ g0sd <- apply(g0,2,sd)
+ g1sd <- apply(g1,2,sd)
+### End of Bootstrap Loop
+    
    parest[m,] <- c(beta0est, estH0, beta1est, estH1, beta2est, estH2, alpest, g0e, g1e)
-#   sdest[m,] <- c(beta0sd, sdH0, beta1sd, sdH1, beta2sd, sdH2, alpsd, g0sd, g1sd)
+   sdest[m,] <- c(beta0sd, sdH0, beta1sd, sdH1, beta2sd, sdH2, alpsd, g0sd, g1sd)
 
    }else {
     parest[m,] <- sdest[m,] <- NA
@@ -246,12 +231,6 @@ save(list=ls(all=TRUE), file="working.RData")
 save(censE, censD, G, parest, file='simI_result_102016.RData')
 
 summary/nsim
-# pt0 <- which(pred.t %in% c(0.19, 0.48, 0.98))
-# pt1 <- which(pred.t %in% c(0.48, 0.77, 1.16))
-# pt2 <- which(pred.t %in% c(0.33, 0.73, 1.28))
-# pt0 <- c(19, 48, 98)
-# pt1 <- c(48, 77, 116)
-# pt2 <- c(33, 73, 128)
 pt0 <- c(16, 43, 99)
 pt1 <- c(11, 29, 63)
 pt2 <- c(20, 49, 99)
@@ -292,14 +271,6 @@ mse[2,5] <- mean(apply((g1-matrix(TS[[2]], nsim, length(pred.t), byrow=TRUE))^2,
 colnames(mse) <- c("ITTKM", "ITTCox", "NoCrossKM", "JBS", "TM")
 rownames(mse) <- c("control", "treatment")
 sqrt(mse)
-# n=400
-# ITTKM ITTCox NoCrossKM       JBS         TM
-# control   0.11051191     NA 0.1123844 0.1681879 0.03315273
-# treatment 0.05766382     NA 0.1056267 0.1653469 0.03502231
-# n=1000
-# ITTKM ITTCox NoCrossKM       JBS         TM
-# control   0.10830460     NA 0.1085155 0.1659792 0.02390444
-# treatment 0.05183621     NA 0.1014123 0.1629063 0.02474010
 
 mmad <- matrix(NA,2,5)
 mmad[1,1] <- mean(apply(abs(ITTKM0-matrix(TS[[1]], nsim, length(pred.t), byrow=TRUE)), 1, max))
@@ -315,11 +286,6 @@ mmad[2,5] <- mean(apply(abs(g1-matrix(TS[[2]], nsim, length(pred.t), byrow=TRUE)
 colnames(mmad) <- c("ITTKM", "ITTCox", "NoCrossKM", "JBS", "TM")
 rownames(mmad) <- c("control", "treatment")
 mmad
-
-# n=1000
-# ITTKM ITTCox NoCrossKM       JBS         TM
-# control   0.14591944     NA 0.1711234 0.1998948 0.03391508
-# treatment 0.07540126     NA 0.1564552 0.1933507 0.03521130
 
 pred.tn <- c(0, pred.t)
 surv.mat <- matrix(NA, length(pred.tn), 13)
