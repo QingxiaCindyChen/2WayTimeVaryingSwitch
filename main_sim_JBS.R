@@ -4,12 +4,10 @@
 
 rm(list = ls())
 library(survival)
-# library(rms)
-# library(Hmisc)
 library(Matrix)
 
-dir <- '~/Dropbox/Papers/UConn_Julie/Program/TD_model/'
-# dir <- 'C:/Users/chenq3/Dropbox/Papers/UConn_Julie/Program/TD_model/'
+# setup your own directory
+# dir <- '~/Dropbox/Papers/UConn_Julie/Program/TD_model/'
 
 source(paste(dir, 'CountDat.R', sep=''))
 source(paste(dir, 'EM3.R', sep=''))
@@ -31,7 +29,6 @@ tau <- b
 pred.t <- seq(0.01,tau,0.01)
 TS<- TrueSurv(pred.t, n=100000, r, v, xi, lambda)
 testpt0 <- testpt1 <- testpt2 <- pred.t
-#save(TS, file="TS.Rdata")
 
 # start simulations
 nsim <- 1000
